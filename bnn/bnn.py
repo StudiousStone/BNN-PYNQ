@@ -48,7 +48,7 @@ _ffi = cffi.FFI()
 
 _ffi.cdef("""
 void load_parameters(const char* path);
-unsigned int inference(const char* path, unsigned int results[64], int number_class, float *usecPerImage);
+unsigned int inference(unsigned char cifarimg[3072], unsigned int results[64], int number_class, float *usecPerImage);
 unsigned int* inference_multiple(const char* path, int number_class, int *image_number, float *usecPerImage, unsigned int enable_detail);
 void free_results(unsigned int * result);
 void deinit();
@@ -88,9 +88,10 @@ class PynqBNN:
             self.classes = [c.strip() for c in f.readlines()]
         filter(None, self.classes)
         
-    def inference(self, path):
+    def inference(self, cifarimg):
         usecperimage = _ffi.new("float *") 
-        result_ptr = self.interface.inference(path.encode(), _ffi.NULL, len(self.classes), usecperimage)
+        img = _ffi.cast("unsigned char *", cifarimg.ctypes.data)
+        result_ptr = self.interface.inference(img, _ffi.NULL, len(self.classes), usecperimage)
         print("Inference took %.2f microseconds" % (usecperimage[0]))
         print("Classification rate: %.2f images per second" % (1000000.0/usecperimage[0]))
         return result_ptr
@@ -139,7 +140,7 @@ class CnvClassifier:
         self.bnn = PynqBNN(runtime, network=NETWORK_CNV)
         self.bnn.load_parameters(params)
     
-    def image_to_cifar(self, im, fp):
+    def image_to_cifar(self, im):
         # We resize the downloaded image to be 32x32 pixels as expected from the BNN
         im.thumbnail((32, 32), Image.ANTIALIAS)
         background = Image.new('RGBA', (32, 32), (255, 255, 255, 0))
@@ -151,17 +152,13 @@ class CnvClassifier:
         r = im[:,:,0].flatten()
         g = im[:,:,1].flatten()
         b = im[:,:,2].flatten()
-        label = np.identity(1, dtype=np.uint8)
-        fp.write(label.tobytes())
-        fp.write(r.tobytes())
-        fp.write(g.tobytes())
-        fp.write(b.tobytes())
+        # label = np.identity(1, dtype=np.uint8)
+        # fp.write(label.tobytes())
+        return(np.concatenate((r,g,b),axis=0))
     
     def classify_image(self, im):
-        with tempfile.NamedTemporaryFile() as tmp:
-            self.image_to_cifar(im, tmp)
-            tmp.flush()
-            return self.bnn.inference(tmp.name)
+        cifarimg = self.image_to_cifar(im, tmp)
+        return self.bnn.inference(cifarimg)
     
     def classify_details(self, im):
         with tempfile.NamedTemporaryFile() as tmp:

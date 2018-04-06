@@ -46,9 +46,16 @@
 #include <chrono>
 #include "foldedmv-offload.h"
 #include <algorithm>
+#include <iterator>
 using namespace std;
 using namespace tiny_cnn;
 using namespace tiny_cnn::activation;
+
+#define CIFAR10_IMAGE_DEPTH (3)
+#define CIFAR10_IMAGE_WIDTH (32)
+#define CIFAR10_IMAGE_HEIGHT (32)
+#define CIFAR10_IMAGE_AREA (CIFAR10_IMAGE_WIDTH*CIFAR10_IMAGE_HEIGHT)
+#define CIFAR10_IMAGE_SIZE (CIFAR10_IMAGE_AREA*CIFAR10_IMAGE_DEPTH)
 
 void makeNetwork(network<mse, adagrad> & nn) {
   nn
@@ -79,7 +86,7 @@ makeNetwork(nn);
         FoldedMVLoadLayerMem(path , 8, L8_PE, L8_WMEM, L8_TMEM);
 }
 
-extern "C" unsigned int inference(const char* path, unsigned int results[64], int number_class, float *usecPerImage)
+extern "C" unsigned int inference(unsigned char cifarimg[3072], unsigned int results[64], int number_class, float *usecPerImage)
 {
 
 FoldedMVInit("cnv-pynq");
@@ -87,10 +94,12 @@ FoldedMVInit("cnv-pynq");
 network<mse, adagrad> nn;
 
 makeNetwork(nn);
-std::vector<label_t> test_labels;
+//std::vector<label_t> test_labels;
 std::vector<vec_t> test_images;
-
-parse_cifar10(path, &test_images, &test_labels, -1.0, 1.0, 0, 0);
+vec_t img;
+std::transform(std::begin(cifarimg), std::end(cifarimg), std::back_inserter(img),[=](unsigned char c) { return -1 + 2 * c / 255; });
+test_images.push_back(img);
+//parse_cifar10(path, &test_images, &test_labels, -1.0, 1.0, 0, 0);
 std::vector<unsigned int> class_result;
 float usecPerImage_int;
 class_result=testPrebuiltCIFAR10_from_image<8, 16>(test_images, number_class, usecPerImage_int);

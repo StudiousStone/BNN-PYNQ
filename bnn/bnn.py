@@ -48,7 +48,8 @@ _ffi = cffi.FFI()
 
 _ffi.cdef("""
 void load_parameters(const char* path);
-unsigned int inference(unsigned char cifarimg[3072], unsigned int results[64], int number_class, float *usecPerImage);
+unsigned int inference_array(unsigned char cifarimg[3072], unsigned int results[64], int number_class, float *usecPerImage);
+unsigned int inference(const char* path, unsigned int results[64], int number_class, float *usecPerImage);
 unsigned int* inference_multiple(const char* path, int number_class, int *image_number, float *usecPerImage, unsigned int enable_detail);
 void free_results(unsigned int * result);
 void deinit();
@@ -88,10 +89,17 @@ class PynqBNN:
             self.classes = [c.strip() for c in f.readlines()]
         filter(None, self.classes)
         
-    def inference(self, cifarimg):
+    def inference_array(self, cifarimg):
         usecperimage = _ffi.new("float *") 
         img = _ffi.cast("unsigned char *", cifarimg.ctypes.data)
         result_ptr = self.interface.inference(img, _ffi.NULL, len(self.classes), usecperimage)
+        print("Inference took %.2f microseconds" % (usecperimage[0]))
+        print("Classification rate: %.2f images per second" % (1000000.0/usecperimage[0]))
+        return result_ptr
+
+    def inference(self, path):
+        usecperimage = _ffi.new("float *") 
+        result_ptr = self.interface.inference(path.encode(), _ffi.NULL, len(self.classes), usecperimage)
         print("Inference took %.2f microseconds" % (usecperimage[0]))
         print("Classification rate: %.2f images per second" % (1000000.0/usecperimage[0]))
         return result_ptr
@@ -158,7 +166,7 @@ class CnvClassifier:
     
     def classify_image(self, im):
         cifarimg = self.image_to_cifar(im)
-        return self.bnn.inference(cifarimg)
+        return self.bnn.inference_array(cifarimg)
     
     def classify_details(self, im):
         with tempfile.NamedTemporaryFile() as tmp:

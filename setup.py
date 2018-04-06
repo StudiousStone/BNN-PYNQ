@@ -67,7 +67,7 @@ def run_make(src_path, network, output_type):
     if status is not 0:
         print("Error while running make for",network,output_type,"Exiting..")
         exit(1)
-    shutil.copyfile( src_path + "/output/sw/" + output_type + "-" + network + ".so", src_path + "../../libraries/" +  output_type + "-" + network + ".so")
+    shutil.copyfile( src_path + "output/sw/" + output_type + "-" + network + ".so", src_path + "../../libraries/" +  output_type + "-" + network + ".so")
 
 print('Fpgadeveloper PYNQ-BNN install')
 if len(sys.argv) > 1 and sys.argv[1] == 'install' and 'VIVADOHLS_INCLUDE_PATH' in os.environ:

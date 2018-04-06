@@ -157,7 +157,7 @@ class CnvClassifier:
         return(np.concatenate((r,g,b),axis=0))
     
     def classify_image(self, im):
-        cifarimg = self.image_to_cifar(im, tmp)
+        cifarimg = self.image_to_cifar(im)
         return self.bnn.inference(cifarimg)
     
     def classify_details(self, im):

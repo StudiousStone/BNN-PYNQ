@@ -62,13 +62,16 @@ setup(
 
 
 def run_make(src_path, network, output_type):
+    print('Running make for',network,output_type)
     status = subprocess.check_call(["bash", src_path + "/make-sw.sh", network, output_type])
     if status is not 0:
         print("Error while running make for",network,output_type,"Exiting..")
         exit(1)
     shutil.copyfile( src_path + "/output/sw/" + output_type + "-" + network + ".so", src_path + "../../libraries/" +  output_type + "-" + network + ".so")
 
+print('Fpgadeveloper PYNQ-BNN install')
 if len(sys.argv) > 1 and sys.argv[1] == 'install' and 'VIVADOHLS_INCLUDE_PATH' in os.environ:
+   print('Recompiling shared objects')
    os.environ["XILINX_BNN_ROOT"] = site.getsitepackages()[0] + "/bnn/src/"
    XILINX_BNN_ROOT=site.getsitepackages()[0]
    #BNN_ROOT_DIR = os.path.dirname(os.path.realpath(__file__))

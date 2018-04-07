@@ -92,7 +92,7 @@ class PynqBNN:
     def inference_array(self, cifarimg):
         usecperimage = _ffi.new("float *") 
         img = _ffi.cast("unsigned char *", cifarimg.ctypes.data)
-        result_ptr = self.interface.inference(img, _ffi.NULL, len(self.classes), usecperimage)
+        result_ptr = self.interface.inference_array(img, _ffi.NULL, len(self.classes), usecperimage)
         print("Inference took %.2f microseconds" % (usecperimage[0]))
         print("Classification rate: %.2f images per second" % (1000000.0/usecperimage[0]))
         return result_ptr
